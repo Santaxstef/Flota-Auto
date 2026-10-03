@@ -1,0 +1,39 @@
+name: Compilare APK Flota
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deschide codul sursa
+        uses: actions/checkout@v4
+
+      - name: Ajusteaza structura proiectului
+        run: |
+          if [ -d "evidenta_auto_v1" ]; then
+            mv evidenta_auto_v1/* . || true
+            mv evidenta_auto_v1/.* . || true
+          fi
+
+      - name: Instaleaza Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Instaleaza Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Descarca Librarii
+        run: flutter pub get
+
+      - name: Construieste APK Compact
+        run: flutter build apk --release --split-per-abi
+
+      - name: Salveaza Fisierul pentru Telefon
+        uses: actions/upload-artifact@v4
+        with:
+          name: aplicatie-santax
+          path: build/app/outputs/flutter-apk/*-armeabi-v7a-release.apk
