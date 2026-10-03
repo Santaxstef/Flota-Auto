@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flota Auto | SANTAX</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f4f8; color: #333; }
+        .header { background: #1e88e5; color: white; padding: 15px; text-align: center; font-size: 22px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); position: relative; }
+        .plate { font-size: 20px; font-weight: bold; color: #1e88e5; margin-bottom: 4px; }
+        .model { font-size: 16px; color: #555; font-weight: 500; margin-bottom: 12px; }
+        .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: flex; align-items: center; background: #e0e0e0; }
+        .btn-add { background: #1e88e5; color: white; border: none; padding: 12px 24px; border-radius: 24px; font-size: 16px; font-weight: bold; display: block; width: 200px; margin: 20px auto; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; }
+        .tabs { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-weight: bold; color: #777; }
+        .tab.active { color: #1e88e5; border-bottom: 3px solid #1e88e5; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
+        input, text-area, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-save { background: #4caf50; color: white; flex: 1; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-close { background: #f44336; color: white; flex: 1; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-scan { background: #ff9800; color: white; width: 100%; border: none; padding: 10px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
+        .btn-del { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #f44336; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .list-item { background: #f9f9f9; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #1e88e5; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">Flota Auto | SANTAX</div>
+    
+    <div class="container" id="carsList"></div>
+    
+    <button class="btn-add" onclick="openModal()">+ Mașină Nouă</button>
+
+    <!-- MODAL DETALII / ADĂUGARE -->
+    <div class="modal" id="carModal">
+        <div class="modal-content">
+            <div class="tabs">
+                <div class="tab active" id="tab0" onclick="switchTab(0)">Date</div>
+                <div class="tab" id="tab1" onclick="switchTab(1)">Alimentări</div>
+                <div class="tab" id="tab2" onclick="switchTab(2)">Service</div>
+            </div>
+
+            <!-- TAB DATE GENERALE -->
+            <div class="tab-content active" id="content0">
+                <input type="hidden" id="carId">
+                <label>Număr Înmatriculare</label><input type="text" id="mPlate">
+                <label>Marcă</label><input type="text" id="mMake">
+                <label>Model</label><input type="text" id="mModel">
+                <label>Kilometraj curent (KM)</label><input type="number" id="mKm">
+                <label>Consum (l/100km)</label><input type="text" id="mCon" readonly value="-">
+                <h4 style="margin: 15px 0 5px 0;">Scadențe (zi.lună.an)</h4>
+                <label>Expirare ITP</label><input type="text" id="mItp" placeholder="ex: 15.10.2026">
+                <label>Expirare RCA</label><input type="text" id="mRca" placeholder="ex: 01.12.2026">
+                <label>Expirare Rovinietă</label><input type="text" id="mRov" placeholder="ex: 20.08.2027">
+                <label>Următoarea Revizie</label><input type="text" id="mRev" placeholder="ex: 10.05.2027">
+            </div>
+
+            <!-- TAB ALIMENTĂRI -->
+            <div class="tab-content" id="content1">
+                <button class="btn-scan" onclick="simulateScan()">⚡ Scanează Bon (SANTAX Scan)</button>
+                <div id="fuelHistory"></div>
+            </div>
+
+            <!-- TAB SERVICE -->
+            <div class="tab-content" id="content2">
+                <button class="btn-scan" style="background:#2196f3;" onclick="addServiceEntry()">+ Adaugă Lucrare Service</button>
+                <div id="serviceHistory"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-save" onclick="saveCar()">Salvează</button>
+                <button class="btn-close" onclick="closeModal()">Închide</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cars = JSON.parse(localStorage.getItem('santax_cars')) || [];
+        let activeTab = 0;
+
+        function renderCars() {
+            const list = document.getElementById('carsList');
+            list.innerHTML = cars.length === 0 ? '<p style="text-align:center;color:#777;">Nu ai nicio mașină adăugată.</p>' : '';
+            
+            cars.forEach((car, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                const plateText = car.plate || 'FĂRĂ NUMĂR';
+                const modelText = (car.make || car.model) ? `${car.make} ${car.model}` : 'Marcă/Model nespecificat';
+                
+                card.innerHTML = `
+                    <button class="btn-del" onclick="deleteCar(${index}, event)">✕</button>
+                    <div onclick="openModal(${index})">
+                        <div class="plate">${plateText}</div>
+                        <div class="model">${modelText}</div>
+                        <div class="chip-grid">
+                            <div class="chip">KM: ${car.km || '-'}</div>
+                            <div class="chip">Consum: ${car.con || '-'} l/100</div>
+                            <div class="chip" style="background:${getAlertColor(car.itp)}">ITP: ${car.itp || '-'}</div>
+                            <div class="chip" style="background:${getAlertColor(car.rca)}">RCA: ${car.rca || '-'}</div>
+                            <div class="chip" style="background:${getAlertColor(car.rov)}">Rov: ${car.rov || '-'}</div>
+                            <div class="chip" style="background:${getAlertColor(car.rev)}">Rev: ${car.rev || '-'}</div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            checkCriticalAlerts();
+        }
+
+        function getAlertColor(dateStr) {
+            if (!dateStr || dateStr === '-') return '#e0e0e0';
+            try {
+                const p = dateStr.split('.');
+                if (p.length !== 3) return '#e0e0e0';
+                const exp = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+                const diff = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
+                if (diff <= 15) return '#ffcdd2'; // Roșu deschis
+                if (diff <= 30) return '#ffe0b2'; // Portocaliu deschis
+                if (diff <= 60) return '#fff9c4'; // Galben deschis
+                return '#c8e6c9'; // Verde deschis
+            } catch(e) { return '#e0e0e0'; }
+        }
+
+        function checkCriticalAlerts() {
+            let critical = [];
+            cars.forEach(car => {
+                ['itp', 'rca', 'rov', 'rev'].forEach(type => {
+                    const d = car[type];
+                    if(d && d !== '-') {
+                        const p = d.split('.');
+                        if(p.length === 3) {
+                            const exp = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+                            const diff = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
+                            if(diff <= 15) {
+                                critical.push(`${car.plate || car.make}: ${type.toUpperCase()} ${diff < 0 ? 'A EXPIRAT' : 'expiră în ' + diff + ' zile'}`);
+                            }
+                        }
+                    }
+                });
+            });
+            if (critical.length > 0 && !sessionStorage.getItem('alerted')) {
+                alert("ALERTE CRITICE SCADENȚĂ:\n\n" + critical.join("\n"));
+                sessionStorage.setItem('alerted', 'true');
+            }
+        }
+
+        function openModal(index = null) {
+            switchTab(0);
+            if (index !== null) {
+                const car = cars[index];
+                document.getElementById('carId').value = index;
+                document.getElementById('mPlate').value = car.plate;
+                document.getElementById('mMake').value = car.make;
+                document.getElementById('mModel').value = car.model;
+                document.getElementById('mKm').value = car.km;
+                document.getElementById('mCon').value = car.con || '-';
